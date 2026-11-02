@@ -122,6 +122,61 @@ class IncrementalScannerPolicyTest {
     }
 
     @Test
+    fun `proven SAF membership restores document path for cached MediaStore metadata`() {
+        val media = song("media:42", title = "Cached title", modified = 123L).copy(
+            contentUri = "content://media/external_primary/audio/media/42",
+            displayName = "song.flac",
+            relativePath = "Music/Artist/Album/",
+            mimeType = "audio/flac",
+        )
+        val documentUri = "content://com.android.externalstorage.documents/tree/primary%3AMusic/" +
+            "document/primary%3AMusic%2FArtist%2FAlbum%2Fsong.flac"
+        val membership = com.libreplayer.data.database.entity.SongSourceEntity(
+            sourceId = "root", incarnation = 0L,
+            itemKey = checkNotNull(SourceIdentity.documentKey(documentUri)),
+            songId = media.id,
+            contentUri = documentUri,
+            physicalKey = SourceIdentity.physicalKey(media),
+        )
+        val restored = cachedSongForSource(media, membership, SourceIdentity.DOCUMENT)
+        val descriptor = DocumentDescriptor(
+            id = "document:$documentUri",
+            contentUri = documentUri,
+            displayName = "song.flac",
+            relativePath = java.net.URI(documentUri).path,
+            mimeType = "audio/flac",
+            dateModifiedEpochSeconds = 123L,
+        )
+        assertThat(restored.relativePath).isEqualTo(descriptor.relativePath)
+        assertThat(canReuseCachedDocument(restored, descriptor)).isTrue()
+        assertThat(restored.title).isEqualTo("Cached title")
+    }
+
+    @Test
+    fun `unproven SAF membership does not inherit document path`() {
+        val media = song("media:42", modified = 123L).copy(
+            contentUri = "content://media/external_primary/audio/media/42",
+            displayName = "song.flac",
+            relativePath = "Music/Artist/Album/",
+        )
+        val documentUri = "content://unrelated.provider/document/song.flac"
+        val membership = com.libreplayer.data.database.entity.SongSourceEntity(
+            sourceId = "root", incarnation = 0L,
+            itemKey = checkNotNull(SourceIdentity.documentKey(documentUri)),
+            songId = media.id,
+            contentUri = documentUri,
+            physicalKey = SourceIdentity.physicalKey(media),
+        )
+        val restored = cachedSongForSource(media, membership, SourceIdentity.DOCUMENT)
+        assertThat(restored.relativePath).isEqualTo(media.relativePath)
+        assertThat(canReuseCachedDocument(restored, DocumentDescriptor(
+            id = "document:$documentUri", contentUri = documentUri, displayName = "song.flac",
+            relativePath = java.net.URI(documentUri).path, mimeType = "audio/mpeg",
+            dateModifiedEpochSeconds = 123L,
+        ))).isFalse()
+    }
+
+    @Test
     fun `SAF duplicate reuses matching cached MediaStore metadata`() {
         val cachedMediaStoreSong = song(
             id = "media:42",
