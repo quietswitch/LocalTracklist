@@ -12,6 +12,7 @@ import com.libreplayer.library.semantics.decodeMediaStoreTrackNumber
 import com.libreplayer.library.semantics.normalizeMetadataYear
 import androidx.documentfile.provider.DocumentFile
 import com.libreplayer.data.repository.SongSourceType
+import com.libreplayer.data.database.entity.SongSourceEntity
 import com.libreplayer.library.metadata.AudioMetadataReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -107,7 +108,11 @@ class DeviceLibraryScanner(
         for (descriptor in requested) {
             val source = previousSources[descriptor.id] ?: descriptor
             val cached = memberships.filter { it.sourceId == source.id && it.incarnation == source.incarnation && it.present }
-                .mapNotNull { member -> songsById[member.songId]?.copy(id = member.itemKey, contentUri = member.contentUri) }
+                .mapNotNull { member ->
+                    songsById[member.songId]?.let { song ->
+                        cachedSongForSource(song, member, source.kind)
+                    }
+                }
             try {
                 if (source.kind == SourceIdentity.MEDIA) {
                     val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -399,7 +404,8 @@ class DeviceLibraryScanner(
                 destination += cached.asDocumentSong(descriptor)
                 counters.cachedSongsReused++
             }
-            throw IOException("Document metadata read failed; root authority withheld.")
+            // A discovered file with unreadable metadata does not invalidate root enumeration.
+            return
         }
         val duration = metadata.durationMs ?: 0L
         if (duration <= 0L || duration in 1L..<30_000L) return
@@ -468,6 +474,32 @@ internal data class DocumentDescriptor(
     val mimeType: String?,
     val dateModifiedEpochSeconds: Long,
 )
+
+/**
+ * A SAF source membership can refer to a MediaStore-preferred catalog song.
+ * Preserve its document identity, but recover its document-relative path only
+ * when the stored membership proves the same provider-qualified physical file
+ * in both MediaStore and SAF. Unproven or opaque providers stay conservative.
+ */
+internal fun cachedSongForSource(
+    song: ScannedSong,
+    membership: SongSourceEntity,
+    sourceKind: String,
+): ScannedSong {
+    val provenMediaAlias = sourceKind == SourceIdentity.DOCUMENT &&
+        song.sourceType == SongSourceType.MEDIA_STORE &&
+        membership.physicalKey != null &&
+        SourceIdentity.physicalKey(song) == membership.physicalKey &&
+        SourceIdentity.physicalKey(song.copy(contentUri = membership.contentUri)) == membership.physicalKey
+    val documentPath = if (provenMediaAlias) {
+        runCatching { java.net.URI(membership.contentUri).path }.getOrNull()
+    } else null
+    return song.copy(
+        id = membership.itemKey,
+        contentUri = membership.contentUri,
+        relativePath = documentPath ?: song.relativePath,
+    )
+}
 
 internal fun canReuseCachedDocument(
     cached: ScannedSong,
