@@ -404,7 +404,8 @@ class DeviceLibraryScanner(
                 destination += cached.asDocumentSong(descriptor)
                 counters.cachedSongsReused++
             }
-            throw IOException("Document metadata read failed; root authority withheld.")
+            // A discovered file with unreadable metadata does not invalidate root enumeration.
+            return
         }
         val duration = metadata.durationMs ?: 0L
         if (duration <= 0L || duration in 1L..<30_000L) return
