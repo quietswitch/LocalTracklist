@@ -128,7 +128,17 @@ class DeviceLibraryScanner(
                             queryMediaStoreSongs(collection, checkNotNull(previous).generation).also { mediaRows += it.size }
                         } else emptyList()
                         val ids = queryCurrentMediaStoreIds(collection).also { idRows += it.size }
-                        mergeIncrementalMediaStoreSongs(cached, changed, ids).also { reused += it.size - changed.size }
+                        // A generation watermark optimizes metadata reads; it does not prove
+                        // every currently eligible ID has already reached our catalog.
+                        val knownIds = (cached + changed).mapTo(HashSet(), ScannedSong::id)
+                        val missing = (ids - knownIds).toList().chunked(900).flatMap { batch ->
+                            queryMediaStoreSongs(collection, null, batch).also { mediaRows += it.size }
+                        }
+                        val refreshed = changed + missing
+                        mergeIncrementalMediaStoreSongs(cached, refreshed, ids).also {
+                            val refreshedIds = refreshed.mapTo(HashSet(), ScannedSong::id)
+                            reused += it.count { song -> song.id !in refreshedIds }
+                        }
                     }
                     // A provider mutation between enumeration and its ID/checkpoint queries cannot
                     // authorize a partial deletion set. Retry on the next refresh instead.
@@ -171,7 +181,11 @@ class DeviceLibraryScanner(
         val generation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) MediaStore.getGeneration(context, volume) else 0
         return MediaStoreCheckpoint(version, generation)
     }
-    private fun queryMediaStoreSongs(collection: Uri, minimumGenerationExclusive: Long?): List<ScannedSong> {
+    private fun queryMediaStoreSongs(
+        collection: Uri,
+        minimumGenerationExclusive: Long?,
+        itemIds: List<String>? = null,
+    ): List<ScannedSong> {
         val projection = mediaStoreAudioProjection(Build.VERSION.SDK_INT)
         val selectionParts = mutableListOf(
             "${MediaStore.Audio.Media.IS_MUSIC} != 0",
@@ -181,6 +195,12 @@ class DeviceLibraryScanner(
         if (minimumGenerationExclusive != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             selectionParts += "${MediaStore.MediaColumns.GENERATION_MODIFIED} > ?"
             selectionArgs += minimumGenerationExclusive.toString()
+        }
+
+        if (itemIds != null) {
+            require(itemIds.isNotEmpty())
+            selectionParts += "${MediaStore.Audio.Media._ID} IN (${itemIds.joinToString { "?" }})"
+            selectionArgs += itemIds
         }
 
         return buildList {
@@ -538,6 +558,9 @@ internal fun mergeIncrementalMediaStoreSongs(
 ): List<ScannedSong> {
     val merged = cachedSongs.associateByTo(LinkedHashMap(), ScannedSong::id)
     changedSongs.forEach { merged[it.id] = it }
+    if (!merged.keys.containsAll(currentIds)) {
+        throw IOException("MediaStore returned music IDs without metadata. Please rescan.")
+    }
     return merged.values.filter { it.id in currentIds }
 }
 

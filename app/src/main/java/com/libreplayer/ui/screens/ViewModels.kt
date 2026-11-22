@@ -161,9 +161,9 @@ class LibraryViewModel(
         initialValue = LibraryScreenState(),
     )
 
-    init {
-        viewModelScope.launch {
-            libraryRepository.refreshLibraryIfNeeded()
+    suspend fun refreshWhileForeground(changes: Flow<Unit>) {
+        com.libreplayer.library.scanner.collectForegroundRefreshes(changes) {
+            libraryRepository.rescanLibrary()
         }
     }
 
@@ -332,6 +332,8 @@ class SettingsViewModel(
     private val settingsRepository: SettingsRepository,
     private val libraryRepository: LibraryRepository,
 ) : ViewModel() {
+    val syncState: StateFlow<LibrarySyncState> = libraryRepository.syncState
+
     val settings: StateFlow<AppSettings> = settingsRepository.settings.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000L),

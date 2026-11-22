@@ -19,8 +19,8 @@ android {
         applicationId = "com.libreplayer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 6
-        versionName = "1.1.0"
+        versionCode = 7
+        versionName = "1.2.0"
 
         testInstrumentationRunner = "com.libreplayer.migration.SourceMigrationTestRunner"
         vectorDrawables.useSupportLibrary = true
@@ -72,9 +72,9 @@ android {
         }
     }
     sourceSets {
-        getByName("test").kotlin.srcDir("src/sharedTest/java")
-        getByName("androidTest").kotlin.srcDir("src/sharedTest/java")
-        getByName("androidTest").assets.srcDir("schemas")
+        getByName("test").kotlin.directories.add("src/sharedTest/java")
+        getByName("androidTest").kotlin.directories.add("src/sharedTest/java")
+        getByName("androidTest").assets.directories.add("schemas")
     }
 }
 
@@ -122,6 +122,7 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test)
 
+    androidTestCompileOnly(files("${androidComponents.sdkComponents.sdkDirectory.get().asFile}/platforms/android-${android.compileSdk}/optional/android.test.mock.jar"))
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 

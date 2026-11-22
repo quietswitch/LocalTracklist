@@ -6,6 +6,17 @@ import org.junit.Test
 
 class IncrementalScannerPolicyTest {
     @Test
+    fun `incremental merge cannot certify an eligible id without metadata`() {
+        org.junit.Assert.assertThrows(java.io.IOException::class.java) {
+            mergeIncrementalMediaStoreSongs(
+                cachedSongs = listOf(song("1")),
+                changedSongs = emptyList(),
+                currentIds = setOf("1", "2"),
+            )
+        }
+    }
+
+    @Test
     fun `matching generation skips MediaStore metadata query`() {
         val checkpoint = MediaStoreCheckpoint("version", 10L)
 

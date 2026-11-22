@@ -1,6 +1,6 @@
 # LocalTracklist Release Procedure
 
-LocalTracklist is published by quietswitch and was formerly named LibrePlayer. Published v1.0.4 and v1.1.0 releases keep their original names and artifacts. The controlled rebrand retains version 1.1.0/code 6 for review only; the next release version is a separate decision. Do not sign or publish a new APK as part of this rebrand.
+LocalTracklist is published by quietswitch and was formerly named LibrePlayer. Published v1.0.4 and v1.1.0 releases keep their original names and artifacts. The rebrand was reviewed at version 1.1.0/code 6 without republishing. The separately approved next release is LocalTracklist 1.2.0/code 7. Reuse the original signing identity.
 
 This procedure produces and verifies a signed LocalTracklist APK without placing signing material in the repository. Commands are for Windows PowerShell and must be run from the repository root.
 
@@ -53,13 +53,13 @@ app\build\outputs\apk\release\app-release-unsigned.apk
 
 ## Align and Sign
 
-The example below retains the historical `LibrePlayer-1.1.0.apk` filename; it is not an instruction to overwrite or republish that release. Choose a LocalTracklist artifact name only after the next release version is decided. Set temporary PowerShell variables for the local session. The keystore path and alias shown here are placeholders:
+The example below targets the separately versioned LocalTracklist 1.2.0 release. Do not overwrite either historical LibrePlayer release. Set temporary PowerShell variables for the local session. The keystore path and alias shown here are placeholders:
 
 ```powershell
 $buildTools = Join-Path '<ANDROID_SDK>' 'build-tools\<BUILD_TOOLS_VERSION>'
 $unsignedApk = '.\app\build\outputs\apk\release\app-release-unsigned.apk'
 $alignedApk = '.\app\build\outputs\apk\release\app-release-aligned.apk'
-$signedApk = '.\app\build\outputs\apk\release\LibrePlayer-1.1.0.apk'
+$signedApk = '.\app\build\outputs\apk\release\LocalTracklist-1.2.0.apk'
 $keyStore = '<SECURE_KEYSTORE_PATH>'
 $keyAlias = '<KEY_ALIAS>'
 

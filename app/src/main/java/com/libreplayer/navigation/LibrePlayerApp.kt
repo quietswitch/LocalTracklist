@@ -18,6 +18,12 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import com.libreplayer.library.scanner.observeMediaStoreChanges
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -60,6 +66,14 @@ fun LibrePlayerApp(appContainer: AppContainer) {
 
     val libraryState by libraryViewModel.state.collectAsStateWithLifecycle()
     val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
+    val syncState by settingsViewModel.syncState.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+    LaunchedEffect(lifecycleOwner, libraryViewModel, context) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            libraryViewModel.refreshWhileForeground(observeMediaStoreChanges(context.contentResolver))
+        }
+    }
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
 
@@ -138,6 +152,7 @@ fun LibrePlayerApp(appContainer: AppContainer) {
                     SettingsScreen(
                         settings = settings,
                         importedRoots = libraryState.importedRoots,
+                        syncState = syncState,
                         onSearch = { navController.navigate(AppRoute.Search.route) },
                         onThemeModeChange = settingsViewModel::setThemeMode,
                         onShowFileNamesChange = settingsViewModel::setShowFileNamesWhenMetadataMissing,

@@ -26,6 +26,7 @@ data class LibrarySyncState(
     val isLoading: Boolean = false,
     val permissionRequired: Boolean = false,
     val errorMessage: String? = null,
+    val completedSuccessfully: Boolean = false,
 )
 
 interface LibraryRepository {
@@ -150,37 +151,37 @@ class DefaultLibraryRepository(
         forceRebuild: Boolean,
     ) {
         refreshMutex.withLock {
-            val cachedSongs = songDao.getAllSongs()
-            val importedRoots = importedRootDao.getRoots().map { it.uri }
-            val lastSuccessfulRefreshAt = refreshStore.lastSuccessfulRefreshAtMillis()
-            val needsSourceInitialization = database.sourceDao().getSources().none { it.reconciledAtEpochMillis > 0 }
-            if (
-                !shouldRefreshLibrary(
-                    forceRefresh = forceRefresh || needsSourceInitialization,
-                    cachedSongCount = cachedSongs.size,
-                    lastSuccessfulRefreshAtMillis = lastSuccessfulRefreshAt,
-                    nowMillis = System.currentTimeMillis(),
-                )
-            ) {
-                _syncState.value = LibrarySyncState()
-                return
-            }
-
-            val nowMillis = System.currentTimeMillis()
-            val scanMode = if (
-                shouldPerformFullReconciliation(
-                    forceRebuild = forceRebuild,
-                    cachedSongCount = cachedSongs.size,
-                    lastFullReconciliationAtMillis = refreshStore.lastFullReconciliationAtMillis(),
-                    nowMillis = nowMillis,
-                )
-            ) {
-                LibraryScanMode.FULL_REBUILD
-            } else {
-                LibraryScanMode.INCREMENTAL
-            }
             _syncState.value = LibrarySyncState(isLoading = true)
             try {
+                val cachedSongs = songDao.getAllSongs()
+                val importedRoots = importedRootDao.getRoots().map { it.uri }
+                val lastSuccessfulRefreshAt = refreshStore.lastSuccessfulRefreshAtMillis()
+                val needsSourceInitialization = database.sourceDao().getSources().none { it.reconciledAtEpochMillis > 0 }
+                if (
+                    !shouldRefreshLibrary(
+                        forceRefresh = forceRefresh || needsSourceInitialization,
+                        cachedSongCount = cachedSongs.size,
+                        lastSuccessfulRefreshAtMillis = lastSuccessfulRefreshAt,
+                        nowMillis = System.currentTimeMillis(),
+                    )
+                ) {
+                    _syncState.value = LibrarySyncState()
+                    return
+                }
+
+                val nowMillis = System.currentTimeMillis()
+                val scanMode = if (
+                    shouldPerformFullReconciliation(
+                        forceRebuild = forceRebuild,
+                        cachedSongCount = cachedSongs.size,
+                        lastFullReconciliationAtMillis = refreshStore.lastFullReconciliationAtMillis(),
+                        nowMillis = nowMillis,
+                    )
+                ) {
+                    LibraryScanMode.FULL_REBUILD
+                } else {
+                    LibraryScanMode.INCREMENTAL
+                }
                 val result = scanner.scan(
                     importedRoots = importedRoots,
                     cachedSongs = cachedSongs.map(SongEntity::asScannedSong),
@@ -208,6 +209,7 @@ class DefaultLibraryRepository(
                         "reused=${stats.cachedSongsReused} sourceFailures=${failures.size}")
                 _syncState.value = LibrarySyncState(
                     errorMessage = failures.firstOrNull(),
+                    completedSuccessfully = failures.isEmpty(),
                     permissionRequired = result.sources.filterIsInstance<SourceScan.Unavailable>().any { it.permissionRequired },
                 )
             } catch (failure: Exception) {

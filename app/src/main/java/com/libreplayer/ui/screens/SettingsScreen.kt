@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.documentfile.provider.DocumentFile
+import androidx.compose.material3.LinearProgressIndicator
+import com.libreplayer.data.repository.LibrarySyncState
 import com.libreplayer.data.repository.AppSettings
 import com.libreplayer.data.repository.ImportedRoot
 import com.libreplayer.data.repository.LibrarySortOption
@@ -40,6 +42,7 @@ import com.libreplayer.data.repository.ThemeMode
 fun SettingsScreen(
     settings: AppSettings,
     importedRoots: List<ImportedRoot>,
+    syncState: LibrarySyncState,
     onSearch: () -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
     onShowFileNamesChange: (Boolean) -> Unit,
@@ -132,15 +135,23 @@ fun SettingsScreen(
         item {
             SettingsCard(title = "Library") {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = onRescan) {
-                        Text("Rescan library")
+                    OutlinedButton(onClick = onRescan, enabled = !syncState.isLoading) {
+                        Text(if (syncState.isLoading) "Scanning library…" else "Rescan library")
+                    }
+                    when {
+                        syncState.isLoading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        syncState.errorMessage != null -> Text(
+                            text = "Rescan could not finish: ${syncState.errorMessage}",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        syncState.completedSuccessfully -> Text("Rescan complete.")
                     }
                     Text(
-                        text = "Rescan checks only new, changed, and removed music.",
+                        text = "Rescan checks new, changed, and removed music. Tracks must be at least 30 seconds long. Android must finish indexing transfers before they can appear here.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    TextButton(onClick = onRebuild) {
+                    TextButton(onClick = onRebuild, enabled = !syncState.isLoading) {
                         Text("Rebuild library completely")
                     }
                     OutlinedButton(onClick = { treeLauncher.launch(null) }) {
