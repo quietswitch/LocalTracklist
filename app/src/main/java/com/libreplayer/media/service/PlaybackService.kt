@@ -8,6 +8,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.CacheBitmapLoader
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.libreplayer.BuildConfig
@@ -88,6 +89,7 @@ class PlaybackService : MediaSessionService() {
             }
 
         mediaSession = MediaSession.Builder(this, SystemControlPlayer(player))
+            .setBitmapLoader(CacheBitmapLoader(EmbeddedAudioArtworkBitmapLoader(this, serviceScope)))
             .setSessionActivity(sessionActivity())
             .build()
         startPeriodicPersistence()

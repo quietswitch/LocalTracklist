@@ -1,18 +1,24 @@
-﻿package com.libreplayer.ui.screens
+package com.libreplayer.ui.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Pause
@@ -24,7 +30,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material3.Button
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +39,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -43,6 +50,10 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,8 +91,12 @@ fun NowPlayingScreen(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text("Now Playing") },
-                    navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
+                    title = { Text("Now playing") },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
                 )
             },
         ) { padding ->
@@ -95,7 +110,7 @@ fun NowPlayingScreen(
     }
 
     var sliderValue by remember(song.id) { mutableFloatStateOf(playbackState.positionMs.toFloat()) }
-    var dragging by remember { mutableStateOf(false) }
+    var dragging by remember(song.id) { mutableStateOf(false) }
 
     LaunchedEffect(playbackState.positionMs, song.id, dragging) {
         if (!dragging) {
@@ -106,8 +121,12 @@ fun NowPlayingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Now Playing") },
-                navigationIcon = { TextButton(onClick = onBack) { Text("Back") } },
+                title = { Text("Now playing") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
                 actions = {
                     NowPlayingMoreMenu(
                         onOpenAudioDetails = { onOpenAudioDetails(song.id) },
@@ -116,121 +135,204 @@ fun NowPlayingScreen(
             )
         },
     ) { padding ->
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+                .padding(padding),
         ) {
-            ArtworkThumbnail(
-                artworkUri = song.artworkUri,
-                fallbackArtworkUri = song.contentUri,
-                sourceRevisionEpochSeconds = song.dateModifiedEpochSeconds,
-                fallbackText = displayTitle(song, settings),
-                variant = ArtworkVariant.FULL,
+            // The square artwork scales to the available height and width.
+            // Remaining content scrolls when the device has a short viewport.
+            val artworkSize = minOf(
+                (maxWidth - 56.dp).coerceAtLeast(160.dp),
+                (maxHeight * 0.46f).coerceAtLeast(160.dp),
+                344.dp,
+            )
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .heightIn(max = 320.dp),
-            )
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = displayTitle(song, settings),
-                    style = MaterialTheme.typography.headlineSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 28.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                ArtworkThumbnail(
+                    artworkUri = song.artworkUri,
+                    fallbackArtworkUri = song.contentUri,
+                    sourceRevisionEpochSeconds = song.dateModifiedEpochSeconds,
+                    fallbackText = displayTitle(song, settings),
+                    variant = ArtworkVariant.FULL,
+                    modifier = Modifier
+                        .size(artworkSize)
+                        .clip(RoundedCornerShape(20.dp)),
                 )
-                Text(
-                    text = "${song.resolvedArtist} - ${song.resolvedAlbum}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                playbackState.errorMessage?.let { message ->
+                Spacer(modifier = Modifier.height(24.dp))
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     Text(
-                        text = message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error,
+                        text = displayTitle(song, settings),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = song.resolvedArtist,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (song.resolvedAlbum.isNotBlank() &&
+                        !song.resolvedAlbum.equals(song.resolvedTitle, ignoreCase = true)
+                    ) {
+                        Text(
+                            text = song.resolvedAlbum,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    playbackState.errorMessage?.let { message ->
+                        Text(
+                            text = message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Slider(
+                    value = sliderValue.coerceIn(
+                        0f,
+                        playbackState.durationMs.coerceAtLeast(1L).toFloat(),
+                    ),
+                    onValueChange = {
+                        dragging = true
+                        sliderValue = it
+                    },
+                    onValueChangeFinished = {
+                        onSeekTo(sliderValue.toLong())
+                        dragging = false
+                    },
+                    valueRange = 0f..playbackState.durationMs.coerceAtLeast(1L).toFloat(),
+                    modifier = Modifier.fillMaxWidth(),
+                    thumb = {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
+                        )
+                    },
+                    track = { sliderState ->
+                        SliderDefaults.Track(
+                            sliderState = sliderState,
+                            modifier = Modifier.height(5.dp),
+                            drawStopIndicator = null,
+                            thumbTrackGapSize = 0.dp,
+                        )
+                    },
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = formatDuration(sliderValue.toLong()),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = formatRemainingDuration(sliderValue.toLong(), playbackState.durationMs),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            }
-            Slider(
-                value = sliderValue.coerceAtLeast(0f),
-                onValueChange = {
-                    dragging = true
-                    sliderValue = it
-                },
-                onValueChangeFinished = {
-                    onSeekTo(sliderValue.toLong())
-                    dragging = false
-                },
-                valueRange = 0f..playbackState.durationMs.coerceAtLeast(1L).toFloat(),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(formatDuration(sliderValue.toLong()))
-                Text(formatRemainingDuration(sliderValue.toLong(), playbackState.durationMs))
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onToggleShuffle) {
-                    Icon(
-                        Icons.Filled.Shuffle,
-                        contentDescription = "Toggle shuffle",
-                        tint = if (playbackState.shuffleEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    )
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    IconButton(onClick = onToggleShuffle, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            Icons.Filled.Shuffle,
+                            contentDescription = if (playbackState.shuffleEnabled)
+                                "Turn shuffle off" else "Turn shuffle on",
+                            tint = if (playbackState.shuffleEnabled)
+                                MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(onClick = onSkipPrevious, modifier = Modifier.size(48.dp)) {
+                        Icon(
+                            Icons.Filled.SkipPrevious,
+                            contentDescription = "Previous",
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                    FilledIconButton(
+                        onClick = onTogglePlayPause,
+                        modifier = Modifier.size(72.dp),
+                    ) {
+                        Icon(
+                            imageVector = if (playbackState.primaryControlShowsPause)
+                                Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            contentDescription = if (playbackState.primaryControlShowsPause)
+                                "Pause" else "Play",
+                            modifier = Modifier.size(36.dp),
+                        )
+                    }
+                    IconButton(onClick = onSkipNext, modifier = Modifier.size(48.dp)) {
+                        Icon(
+                            Icons.Filled.SkipNext,
+                            contentDescription = "Next",
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                    IconButton(onClick = onCycleRepeatMode, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            imageVector = when (playbackState.repeatMode) {
+                                Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
+                                else -> Icons.Filled.Repeat
+                            },
+                            contentDescription = when (playbackState.repeatMode) {
+                                Player.REPEAT_MODE_ONE -> "Repeat one"
+                                Player.REPEAT_MODE_ALL -> "Repeat all"
+                                else -> "Repeat off"
+                            },
+                            tint = if (playbackState.repeatMode == Player.REPEAT_MODE_OFF)
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
-                IconButton(onClick = onSkipPrevious) {
-                    Icon(Icons.Filled.SkipPrevious, contentDescription = "Previous")
-                }
-                Button(onClick = onTogglePlayPause) {
-                    Icon(
-                        imageVector = if (playbackState.primaryControlShowsPause) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                        contentDescription = if (playbackState.primaryControlShowsPause) "Pause" else "Play",
-                    )
-                    Spacer(modifier = Modifier.size(8.dp))
-                    Text(if (playbackState.primaryControlShowsPause) "Pause" else "Play")
-                }
-                IconButton(onClick = onSkipNext) {
-                    Icon(Icons.Filled.SkipNext, contentDescription = "Next")
-                }
-                IconButton(onClick = onCycleRepeatMode) {
-                    Icon(
-                        imageVector = when (playbackState.repeatMode) {
-                            Player.REPEAT_MODE_ONE -> Icons.Filled.RepeatOne
-                            else -> Icons.Filled.Repeat
-                        },
-                        contentDescription = "Repeat mode",
-                        tint = if (playbackState.repeatMode == Player.REPEAT_MODE_OFF) {
-                            MaterialTheme.colorScheme.onSurface
-                        } else {
-                            MaterialTheme.colorScheme.primary
-                        },
-                    )
-                }
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(onClick = onToggleFavorite) {
-                    Icon(
-                        imageVector = if (song.isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-                        contentDescription = if (song.isFavorite) "Remove favorite" else "Add favorite",
-                    )
-                }
-                IconButton(onClick = onOpenQueue) {
-                    Icon(Icons.Filled.QueueMusic, contentDescription = "Open queue")
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onToggleFavorite) {
+                        Icon(
+                            imageVector = if (song.isFavorite) Icons.Filled.Favorite
+                                else Icons.Filled.FavoriteBorder,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(if (song.isFavorite) "Favorited" else "Favorite")
+                    }
+                    TextButton(onClick = onOpenQueue) {
+                        Icon(
+                            Icons.Filled.QueueMusic,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Queue")
+                    }
                 }
             }
         }
