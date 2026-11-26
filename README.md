@@ -10,7 +10,7 @@ LocalTracklist is a free, open-source Android music player for audio files store
 
 ## Download LocalTracklist
 
-**[Download LocalTracklist 1.2.0 for Android (APK, 19.1 MB)](https://github.com/quietswitch/LocalTracklist/releases/download/v1.2.0/LocalTracklist-1.2.0.apk)**
+**[Download LocalTracklist 1.2.1 for Android (APK, 19.1 MiB)](https://github.com/quietswitch/LocalTracklist/releases/download/v1.2.1/LocalTracklist-1.2.1.apk)**
 
 Requires Android 8.0 or newer. Free, no ads or accounts. You do not need Android Studio, a GitHub account, or a computer to install the app.
 
@@ -20,7 +20,7 @@ Requires Android 8.0 or newer. Free, no ads or accounts. You do not need Android
 
 **Already using LibrePlayer or LocalTracklist?** The official release-signed APK uses the same application ID and signing certificate as previous public releases. Back up any important local playlists first, then install the APK over the existing app. Do not uninstall the existing app or clear its data just to update. If Android rejects the update, stop rather than uninstalling; a differently signed build cannot be updated in place.
 
-[Release notes and SHA-256 checksum](https://github.com/quietswitch/LocalTracklist/releases/tag/v1.2.0) · [All releases](https://github.com/quietswitch/LocalTracklist/releases)
+[Release notes and SHA-256 checksum](https://github.com/quietswitch/LocalTracklist/releases/tag/v1.2.1) · [All releases](https://github.com/quietswitch/LocalTracklist/releases)
 
 The APK is the installable app; the source code ZIP and TAR.GZ files are for developers.
 
