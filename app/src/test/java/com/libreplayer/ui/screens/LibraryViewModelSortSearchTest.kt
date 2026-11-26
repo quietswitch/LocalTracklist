@@ -1,5 +1,7 @@
 package com.libreplayer.ui.screens
 
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import com.google.common.truth.Truth.assertThat
 import com.libreplayer.data.repository.AppSettings
 import com.libreplayer.data.repository.LibraryRepository
@@ -80,6 +82,59 @@ class LibraryViewModelSortSearchTest {
             assertThat(cleared.songs.map(Song::id))
                 .containsExactly("media:fast", "media:twin-a", "media:slow").inOrder()
             assertThat(cleared.songs.first().contentUri).isEqualTo("content://audio/media:fast")
+        } finally {
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun `search editor keeps immediate text selection and composition independently of results`() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        try {
+            val matchingSong = song("media:needle", "Needle", "Artist", "Album", 100L)
+            val viewModel = viewModel(
+                MutableStateFlow(listOf(matchingSong)),
+                MutableStateFlow(AppSettings()),
+            )
+
+            // No collection of state yet: background search cannot feed these edits back.
+            for (text in listOf("N", "Ne", "Nee", "Need", "Needl", "Needle")) {
+                val edit = TextFieldValue(text, selection = TextRange(text.length))
+                viewModel.updateSearchInput(edit)
+                assertThat(viewModel.searchInput).isEqualTo(edit)
+            }
+            assertThat(viewModel.state.value.searchQuery).isEmpty()
+
+            val result = viewModel.state.first { it.searchQuery == "Needle" }
+            assertThat(result.searchResult.songs.map(Song::id)).containsExactly(matchingSong.id)
+            assertThat(viewModel.searchInput.selection).isEqualTo(TextRange(6))
+
+            val middleEdit = TextFieldValue("NeXedle", selection = TextRange(3), composition = TextRange(2, 3))
+            viewModel.updateSearchInput(middleEdit)
+            assertThat(viewModel.searchInput).isEqualTo(middleEdit)
+            viewModel.state.first { it.searchQuery == middleEdit.text }
+            assertThat(viewModel.searchInput).isEqualTo(middleEdit)
+
+            val selection = TextFieldValue(middleEdit.text, selection = TextRange(2, 3))
+            viewModel.updateSearchInput(selection)
+            assertThat(viewModel.searchInput).isEqualTo(selection)
+            val replacement = TextFieldValue("Needle", selection = TextRange(2))
+            viewModel.updateSearchInput(replacement)
+            viewModel.state.first { it.searchQuery == replacement.text }
+            assertThat(viewModel.searchInput).isEqualTo(replacement)
+
+            val pasted = TextFieldValue("Needle Artist", selection = TextRange(13))
+            viewModel.updateSearchInput(pasted)
+            assertThat(viewModel.searchInput).isEqualTo(pasted)
+            val deleted = TextFieldValue("Needle Artis", selection = TextRange(12))
+            viewModel.updateSearchInput(deleted)
+            assertThat(viewModel.searchInput).isEqualTo(deleted)
+
+            viewModel.clearSearch()
+            assertThat(viewModel.searchInput).isEqualTo(TextFieldValue())
+            viewModel.state.first { it.searchQuery.isEmpty() }
+            viewModel.setSearchQuery("Needle")
+            assertThat(viewModel.searchInput).isEqualTo(TextFieldValue("Needle", selection = TextRange(6)))
         } finally {
             Dispatchers.resetMain()
         }

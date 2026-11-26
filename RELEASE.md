@@ -1,6 +1,6 @@
 # LocalTracklist Release Procedure
 
-LocalTracklist is published by quietswitch and was formerly named LibrePlayer. Published v1.0.4 and v1.1.0 releases keep their original names and artifacts. The rebrand was reviewed at version 1.1.0/code 6 without republishing. The separately approved next release is LocalTracklist 1.2.0/code 7. Reuse the original signing identity.
+LocalTracklist is published by quietswitch and was formerly named LibrePlayer. Published v1.0.4 and v1.1.0 releases keep their original names and artifacts. The rebrand was reviewed at version 1.1.0/code 6 without republishing. LocalTracklist 1.2.0/code 7 is published. The next maintenance release candidate is LocalTracklist 1.2.1/code 8. Reuse the original signing identity.
 
 This procedure produces and verifies a signed LocalTracklist APK without placing signing material in the repository. Commands are for Windows PowerShell and must be run from the repository root.
 
@@ -53,13 +53,13 @@ app\build\outputs\apk\release\app-release-unsigned.apk
 
 ## Align and Sign
 
-The example below targets the separately versioned LocalTracklist 1.2.0 release. Do not overwrite either historical LibrePlayer release. Set temporary PowerShell variables for the local session. The keystore path and alias shown here are placeholders:
+The example below targets the separately versioned LocalTracklist 1.2.1 maintenance release. Do not overwrite any previously published release or asset. Set temporary PowerShell variables for the local session. The keystore path and alias shown here are placeholders:
 
 ```powershell
 $buildTools = Join-Path '<ANDROID_SDK>' 'build-tools\<BUILD_TOOLS_VERSION>'
 $unsignedApk = '.\app\build\outputs\apk\release\app-release-unsigned.apk'
 $alignedApk = '.\app\build\outputs\apk\release\app-release-aligned.apk'
-$signedApk = '.\app\build\outputs\apk\release\LocalTracklist-1.2.0.apk'
+$signedApk = '.\app\build\outputs\apk\release\LocalTracklist-1.2.1.apk'
 $keyStore = '<SECURE_KEYSTORE_PATH>'
 $keyAlias = '<KEY_ALIAS>'
 

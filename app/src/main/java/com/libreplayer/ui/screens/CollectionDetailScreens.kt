@@ -18,6 +18,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.libreplayer.data.repository.AppSettings
 import com.libreplayer.data.repository.LibraryScreenState
@@ -42,7 +43,8 @@ fun SearchScreen(
     libraryState: LibraryScreenState,
     settings: AppSettings,
     onBack: () -> Unit,
-    onQueryChange: (String) -> Unit,
+    searchInput: TextFieldValue,
+    onQueryChange: (TextFieldValue) -> Unit,
     onToggleFavorite: (String) -> Unit,
     onPlaySongs: (List<Song>, Int) -> Unit,
     onAddToQueue: (Song) -> Unit,
@@ -58,7 +60,7 @@ fun SearchScreen(
             TopAppBar(
                 title = {
                     OutlinedTextField(
-                        value = libraryState.searchQuery,
+                        value = searchInput,
                         onValueChange = onQueryChange,
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Search songs, albums, artists") },
@@ -72,13 +74,14 @@ fun SearchScreen(
         },
     ) { padding ->
         val contentPadding = secondaryScreenContentPadding(scaffoldPadding = padding)
-        if (libraryState.searchQuery.isBlank()) {
+        if (searchInput.text.isBlank()) {
             EmptyState(
                 title = "Search your library",
                 message = "Search works across songs, albums, and artists stored on this device.",
                 modifier = Modifier.padding(contentPadding),
             )
-        } else {
+        } else if (libraryState.searchQuery == searchInput.text) {
+            // Results belong to the completed query, not necessarily the latest edit.
             LazyColumn(contentPadding = contentPadding) {
                 if (libraryState.searchResult.songs.isNotEmpty()) {
                     item { SectionHeader("Songs") }

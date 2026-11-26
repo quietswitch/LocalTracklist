@@ -33,15 +33,15 @@ jobs:
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --list_installed | grep -E 'platforms;android-36|build-tools;36'
 
-      - name: Verify LocalTracklist 1.2.0
+      - name: Verify LocalTracklist 1.2.1
         run: |
           chmod +x gradlew
           ./gradlew clean testDebugUnitTest lintDebug assembleDebug assembleRelease :app:assembleDebugAndroidTest :benchmark:assembleBenchmark --console=plain
 
       - name: Verify declared version
         run: |
-          grep -F 'versionCode = 7' app/build.gradle.kts
-          grep -F 'versionName = "1.2.0"' app/build.gradle.kts
+          grep -F 'versionCode = 8' app/build.gradle.kts
+          grep -F 'versionName = "1.2.1"' app/build.gradle.kts
 
       - name: Hash unsigned release APK
         run: |
@@ -50,7 +50,7 @@ jobs:
       - name: Upload release-verification evidence
         uses: actions/upload-artifact@v4
         with:
-          name: localtracklist-1.2.0-release-verification
+          name: localtracklist-1.2.1-release-verification
           if-no-files-found: error
           path: |
             app/build/outputs/apk/release/app-release-unsigned.apk

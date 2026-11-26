@@ -1,9 +1,20 @@
 # Changelog
 
-## Unreleased — LocalTracklist rebrand
+## 1.2.1 (versionCode 8) — Maintenance release candidate
+
+- Keep search text, caret, selection and keyboard composition independent of asynchronous library-search results.
+- Show only results for the current query; preserve existing search matching, sorting and navigation.
+- Add focused regression coverage for search editor state, rapid query changes and clearing.
+
+## 1.2.0 (versionCode 7) — Published as LocalTracklist
+
+- First public LocalTracklist release, including adaptive Now Playing layout, embedded album art in media sessions, and verified library-refresh corrections.
+- Preserves the existing Android package and permanent release signing identity.
+
+### LocalTracklist rebrand
 
 - Renames current public branding to LocalTracklist, with the descriptor "Local music player for Android." and publisher/developer quietswitch.
-- Preserves Android identity `com.libreplayer`, version 1.1.0/code 6, existing data and signing identities, and application behavior. The next release version is undecided.
+- The rebrand was reviewed at version 1.1.0/code 6 before the separately versioned 1.2.0 publication, preserving `com.libreplayer`, existing data and signing identities, and application behavior.
 
 ## 1.1.0 (versionCode 6) — Published as LibrePlayer
 

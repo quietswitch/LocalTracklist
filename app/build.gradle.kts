@@ -19,8 +19,8 @@ android {
         applicationId = "com.libreplayer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 7
-        versionName = "1.2.0"
+        versionCode = 8
+        versionName = "1.2.1"
 
         testInstrumentationRunner = "com.libreplayer.migration.SourceMigrationTestRunner"
         vectorDrawables.useSupportLibrary = true

@@ -1,6 +1,11 @@
 package com.libreplayer.ui.screens
 
 import android.net.Uri
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
@@ -45,6 +50,9 @@ class LibraryViewModel(
     private val playlistRepository: PlaylistRepository,
     private val settingsRepository: SettingsRepository,
 ) : ViewModel() {
+    // The editor must not wait for the asynchronously calculated search presentation.
+    var searchInput by mutableStateOf(TextFieldValue())
+        private set
     private val searchQuery = MutableStateFlow("")
 
     val settings: StateFlow<AppSettings> = settingsRepository.settings.stateIn(
@@ -173,12 +181,20 @@ class LibraryViewModel(
         }
     }
 
+    fun updateSearchInput(value: TextFieldValue) {
+        searchInput = value
+        // Selection/composition-only changes do not trigger a new search.
+        searchQuery.value = value.text
+    }
+
     fun setSearchQuery(query: String) {
-        searchQuery.value = query
+        if (query != searchInput.text) {
+            updateSearchInput(TextFieldValue(query, selection = TextRange(query.length)))
+        }
     }
 
     fun clearSearch() {
-        searchQuery.value = ""
+        updateSearchInput(TextFieldValue())
     }
 
     fun setDefaultSortOption(option: LibrarySortOption) {
